@@ -5,6 +5,7 @@ var morgan = require('morgan')
 
 app.use(bodyParser.json())
 app.use(morgan('tiny'))
+app.use(express.static('build'))
 
 let persons =  [
   { id:1, name: 'Arto Hellas', number: '040-123456' },
@@ -13,7 +14,7 @@ let persons =  [
   { id:4, name: 'Lea Kutvonen', number: '040-123456' }
 ]
 
-app.get('/persons', (req, res) => {
+app.get('/api/persons', (req, res) => {
   res.json(persons)
 })
 
