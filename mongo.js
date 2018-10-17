@@ -1,6 +1,5 @@
+/*
 const mongoose = require('mongoose')
-
-const url = 'mongodb://peippaaja:68aP3QT4@ds125713.mlab.com:25713/pluettelo'
 
 mongoose.connect(url)
 mongoose.Promise = global.Promise;
@@ -22,7 +21,7 @@ Person
 
 var lista = []
 
-/*
+
 process.argv.forEach((val, index) => {
     if (index > 1) {
         lista.push(val)
