@@ -1,36 +1,69 @@
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser')
+const cors = require('cors')
+const Person = require('./models/person')
+
 var morgan = require('morgan')
 
+app.use(cors())
 app.use(bodyParser.json())
 app.use(morgan('tiny'))
 app.use(express.static('build'))
 
-let persons =  [
-  { id:1, name: 'Arto Hellas', number: '040-123456' },
-  { id:2, name: 'Martti Tienari', number: '040-123456' },
-  { id:3, name: 'Arto Järvinen', number: '040-123456' },
-  { id:4, name: 'Lea Kutvonen', number: '040-123456' }
-]
+Person
+.find({})
+.then(result => {
+  result.forEach(person => {
+    console.log(person)
+  })
+})
 
-app.get('/api/persons', (req, res) => {
-  res.json(persons)
+const formatPerson = (person) => {
+  console.log(person)
+  return {
+    name: person.name,
+    number: person.number,
+    id: person._id
+  }
+}
+
+app.get('/api/persons', (request, response) => {
+  Person
+    .find({})
+    .then(people => {
+      response.json(people.map(formatPerson))
+    })
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = persons.find(person => person.id === id )
-  if ( person ) {
-      response.json(person)
-    } else {
-      response.status(404).end()
-    }
+  Person
+    .findById(request.params.id)
+    .then(person => {
+      if (person) {
+        response.json(formatPerson(person))
+      } else {
+        response.status(404).end()
+      }
+    })
+    .catch(error => {
+      console.log(error)
+      response.status(400).send({ error: 'malformatted id' })
+    })
 })
 
 app.get('/info', (req, res) => {
-  const date = new Date()
-  res.send('<div><p>puhelinluettelossa on '+ persons.length + ' henkilön tiedot</p><p>' + date + '</p></div>')
+  var count = 0
+  Person
+  .find({})
+  .then(result => {
+    result.forEach(person => {
+      count += 1
+      console.log("count")
+      console.log(count)
+    })
+    res.send('<div><p>puhelinluettelossa on ' + count + '  henkilön tiedot</p></div>')
+  })
 })
 
 const generateId = () => {
@@ -39,13 +72,36 @@ const generateId = () => {
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
-
-  const person = {
-    id: generateId(),
-    name: body.name,
-    number: body.number
+  if (body.name === undefined) {
+    return response.status(400).json({error: 'content missing'})
   }
 
+  const person = new Person({
+    name: body.name,
+    number: body.number
+  })
+/*
+  Person
+  .findByName(body.name)
+  .then(person => {
+    if (person) {
+      return response.status(400).json({error: 'name already exists'})
+    } else {
+      savedPerson => {
+        response.json(formatPerson(savedPerson))
+      }
+    }
+    })
+*/
+  
+  person
+    .save()
+    .then(savedPerson => {
+      response.json(formatPerson(savedPerson))
+    })
+  
+
+  /*
   const names = persons.map(person => person.name)
   if (names.includes(body.name)) {
     return response.status(400).json({error: 'nimi on jo luettelossa'})
@@ -59,12 +115,40 @@ app.post('/api/persons', (request, response) => {
 
   persons = persons.concat(person)
   response.json(person)
+  */
+})
+
+app.put('/api/persons/:id', (request, response) => {
+  const body = request.body
+
+  const Person = {
+    name: body.name,
+    number: body.number
+  }
+
+  Person
+    .findByIdAndUpdate(request.params.id, person, { new: true } )
+    .then(updatedPerson => {
+      response.json(formatPerson(updatedPerson))
+    })
+    .catch(error => {
+      console.log(error)
+      response.status(400).send({ error: 'malformatted id' })
+    })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
-  response.status(204).end()
+  //const id = Number(request.params.id)
+  //persons = persons.filter(person => person.id !== id)
+  //response.status(204).end()
+  Person
+    .findByIdAndRemove(request.params.id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(error => {
+      response.status(400).send({ error: 'malformatted id' })
+    })
 })
 
 const PORT = process.env.PORT || 3001
